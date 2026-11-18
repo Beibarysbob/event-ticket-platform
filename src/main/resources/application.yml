@@ -1,0 +1,52 @@
+spring:
+  application:
+    name: unified-ticketing
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/ticketing
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        generate_statistics: false
+  flyway:
+    enabled: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: 6379
+      timeout: 2s
+  rabbitmq:
+    host: ${RABBIT_HOST:localhost}
+    port: 5672
+    username: ${RABBIT_USER}
+    password: ${RABBIT_PASSWORD}
+    connection-timeout: 3s
+    template:
+      reply-timeout: 3s
+  cache:
+    type: redis
+server:
+  error:
+    include-stacktrace: never
+    include-message: never
+    include-binding-errors: never
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-components: always
+      show-details: when_authorized
+ticketing:
+  hold-ttl: 10m
+  max-seats-per-booking: 8
+  jwt:
+    secret: ${JWT_SECRET}
+    access-token-expiration: 15m
+    refresh-token-expiration: 7d

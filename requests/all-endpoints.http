@@ -1,0 +1,159 @@
+@base = http://localhost:8080
+@adminToken = PASTE_ADMIN_ACCESS_TOKEN
+@organizerToken = PASTE_ORGANIZER_ACCESS_TOKEN
+@customerToken = PASTE_CUSTOMER_ACCESS_TOKEN
+@eventId = 1
+@venueId = 1
+@sectionId = 1
+@seatId = 1
+@holdReference = REPLACE_AFTER_HOLD_CREATE
+@bookingReference = REPLACE_AFTER_BOOKING_CREATE
+@ticketCode = REPLACE_AFTER_BOOKING_CREATE
+
+### 01 POST register
+POST {{base}}/api/v1/auth/register
+Content-Type: application/json
+
+{"email":"new.customer@example.org","password":"Password123!","displayName":"New Customer"}
+
+### 02 POST login — use real demo password from .env, not the placeholder
+POST {{base}}/api/v1/auth/login
+Content-Type: application/json
+
+{"email":"customer1@demo.local","password":"REPLACE_WITH_DEMO_PASSWORD"}
+
+### 03 POST refresh
+POST {{base}}/api/v1/auth/refresh
+Content-Type: application/json
+
+{"refreshToken":"PASTE_REFRESH_TOKEN"}
+
+### 04 POST logout
+POST {{base}}/api/v1/auth/logout
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{"refreshToken":"PASTE_REFRESH_TOKEN"}
+
+### 05 GET venues
+GET {{base}}/api/v1/venues?page=0&size=20
+
+### 06 GET venue by ID (extra Backend CRUD)
+GET {{base}}/api/v1/venues/{{venueId}}
+
+### 07 POST venue with its sections
+POST {{base}}/api/v1/venues
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"name":"Demo Room","city":"Almaty","addressLine":"University campus","timezone":"Asia/Almaty","sections":[{"name":"A","rows":2,"seatsPerRow":4}]}
+
+### 08 PUT venue (extra Backend CRUD)
+PUT {{base}}/api/v1/venues/{{venueId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{"name":"KIMEP Main Hall","city":"Almaty","addressLine":"Abay Avenue"}
+
+### 09 DELETE venue (will reject if events refer to it)
+DELETE {{base}}/api/v1/venues/{{venueId}}
+Authorization: Bearer {{adminToken}}
+
+### 10 GET events, filter, paginate
+GET {{base}}/api/v1/events?city=Almaty&status=ON_SALE&page=0&size=20
+
+### 11 GET event by ID
+GET {{base}}/api/v1/events/{{eventId}}
+
+### 12 POST event with exact venue section prices (example seeded venue 1 has sections 1,2,3)
+POST {{base}}/api/v1/events
+Authorization: Bearer {{organizerToken}}
+Content-Type: application/json
+
+{"title":"Student Concert","description":"Coursework demo","venueId":1,"startsAt":"2027-01-20T18:00:00Z","salesOpenAt":"2026-10-01T00:00:00Z","salesCloseAt":"2027-01-19T18:00:00Z","prices":{"1":2000,"2":2200,"3":2500}}
+
+### 13 PUT draft event
+PUT {{base}}/api/v1/events/{{eventId}}
+Authorization: Bearer {{organizerToken}}
+Content-Type: application/json
+
+{"title":"Updated Student Concert","description":"New program","startsAt":"2027-01-20T18:00:00Z"}
+
+### 14 POST publish event (only DRAFT)
+POST {{base}}/api/v1/events/{{eventId}}/publish
+Authorization: Bearer {{organizerToken}}
+
+### 15 DELETE event (extra Backend CRUD)
+DELETE {{base}}/api/v1/events/{{eventId}}
+Authorization: Bearer {{organizerToken}}
+
+### 16 GET availability by section
+GET {{base}}/api/v1/events/{{eventId}}/availability
+
+### 17 GET seat page
+GET {{base}}/api/v1/events/{{eventId}}/seats?sectionId={{sectionId}}&page=0&size=20
+
+### 18 POST hold seats: use a free seat ID for a published on-sale event
+POST {{base}}/api/v1/holds
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{"eventId":{{eventId}},"seatIds":[{{seatId}}]}
+
+### 19 GET hold
+GET {{base}}/api/v1/holds/{{holdReference}}
+Authorization: Bearer {{customerToken}}
+
+### 20 DELETE hold early — only call after other hold tests
+DELETE {{base}}/api/v1/holds/{{holdReference}}
+Authorization: Bearer {{customerToken}}
+
+### 21 POST booking from unexpired hold
+POST {{base}}/api/v1/bookings
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{"holdReference":"{{holdReference}}"}
+
+### 22 GET own bookings page
+GET {{base}}/api/v1/bookings?page=0&size=20
+Authorization: Bearer {{customerToken}}
+
+### 23 GET booking by reference
+GET {{base}}/api/v1/bookings/{{bookingReference}}
+Authorization: Bearer {{customerToken}}
+
+### 24 POST cancel pending booking — only before payment
+POST {{base}}/api/v1/bookings/{{bookingReference}}/cancel
+Authorization: Bearer {{customerToken}}
+
+### 25 POST simulated payment — approval true gives 200 / false 402
+POST {{base}}/api/v1/payments
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{"bookingReference":"{{bookingReference}}","approve":true}
+
+### 26 GET ticket by code
+GET {{base}}/api/v1/tickets/{{ticketCode}}
+Authorization: Bearer {{customerToken}}
+
+### 27 GET organizer event sales
+GET {{base}}/api/v1/organizer/events/{{eventId}}/sales
+Authorization: Bearer {{organizerToken}}
+
+### BAD INPUT should return 400 + fields
+POST {{base}}/api/v1/auth/register
+Content-Type: application/json
+
+{"email":"wrong-email","password":"short","displayName":""}
+
+### MISSING RESOURCE should return 404
+GET {{base}}/api/v1/events/999999
+
+### CONFLICT: repeat hold on same seat using a second customer token (409)
+POST {{base}}/api/v1/holds
+Authorization: Bearer {{customerToken}}
+Content-Type: application/json
+
+{"eventId":{{eventId}},"seatIds":[{{seatId}}]}

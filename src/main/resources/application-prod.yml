@@ -1,0 +1,3 @@
+logging:
+  pattern:
+    console: '{"time":"%d{yyyy-MM-dd HH:mm:ss}","level":"%p","requestId":"%X{requestId}","logger":"%logger{36}","message":"%replace(%m){''[\r\n]'','' ''}"}%n'
